@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>为什么进来？</title>
+    <style>
+        /* ===== 全局重置 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #000;
+            font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* ===== 初始黑屏 + 问题 ===== */
+        .question-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            cursor: pointer;
+            transition: opacity 0.8s ease;
+        }
+
+        .question-text {
+            color: #fff;
+            font-size: 26px;
+            font-weight: 300;
+            letter-spacing: 4px;
+            text-align: center;
+            padding: 20px;
+            opacity: 0.9;
+            animation: breathe 3s ease-in-out infinite;
+            text-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes breathe {
+            0%,
+            100% {
+                opacity: 0.6;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.03);
+            }
+        }
+
+        /* ===== 手机屏幕容器（图片） ===== */
+        .phone-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            /* 初始隐藏 */
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            background: #0a0a0a;
+            /* 深色背景衬托手机 */;
+        }
+
+        .phone-container.active {
+            display: flex;
+        }
+
+        /* 模拟手机外壳 - 增大尺寸 */
+        .phone-frame {
+            width: min(92vw, 520px);
+            /* 增大：最大宽度520px，宽度占比提高 */
+            aspect-ratio: 9 / 16;
+            /* 竖屏手机比例 */
+            background: #1a1a1a;
+            border-radius: 40px;
+            /* 稍微增大圆角 */
+            padding: 16px;
+            /* 增加边框厚度 */
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.9), 0 0 0 2px rgba(255, 255, 255, 0.06);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.4s ease;
+        }
+
+        .phone-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* 填充整个屏幕，裁剪以适应比例 */
+            border-radius: 26px;
+            /* 内圆角适配 */
+            display: block;
+            background: #222;
+        }
+
+        /* ===== 音频状态指示（轻量） ===== */
+        .audio-status {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 150;
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 12px;
+            letter-spacing: 2px;
+            pointer-events: none;
+            display: none;
+            /* 默认隐藏，激活后显示 */;
+        }
+
+        .phone-container.active~.audio-status {
+            display: block;
+        }
+
+        /* ===== 点击提示（手机出现后） ===== */
+        .tap-hint {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 150;
+            color: rgba(255, 255, 255, 0.08);
+            font-size: 11px;
+            letter-spacing: 2px;
+            pointer-events: none;
+            display: none;
+        }
+
+        .phone-container.active~.tap-hint {
+            display: block;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 480px) {
+            .question-text {
+                font-size: 20px;
+                letter-spacing: 2px;
+            }
+            .phone-frame {
+                width: min(88vw, 380px);
+                /* 小屏设备适当减小 */
+                border-radius: 32px;
+                padding: 12px;
+            }
+            .phone-frame img {
+                border-radius: 20px;
+            }
+            .audio-status {
+                font-size: 10px;
+                bottom: 20px;
+            }
+            .tap-hint {
+                font-size: 10px;
+                bottom: 60px;
+            }
+        }
+
+        /* ===== 隐藏滚动条 ===== */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== 问题层（黑屏+文字） ===== -->
+    <div class="question-layer" id="questionLayer">
+        <div class="question-text">为什么要进来？</div>
+    </div>
+
+    <!-- ===== 手机容器（图片） ===== -->
+    <div class="phone-container" id="phoneContainer">
+        <div class="phone-frame">
+            <img src="OIP-C.jpg" alt="手机屏幕图片" id="phoneImg" />
+        </div>
+    </div>
+
+    <!-- ===== 底部状态 ===== -->
+    <div class="audio-status" id="audioStatus">🎵 音频已播放</div>
+    <div class="tap-hint">点击任意处可切换</div>
+
+    <!-- ===== 音频元素 ===== -->
+    <audio id="audio" src="1145.mp3" preload="auto"></audio>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const questionLayer = document.getElementById('questionLayer');
+            const phoneContainer = document.getElementById('phoneContainer');
+            const audio = document.getElementById('audio');
+            const audioStatus = document.getElementById('audioStatus');
+
+            let isActive = false; // 是否已进入手机界面
+            let isAudioPlaying = false;
+
+            // ===== 更新音频状态显示 =====
+            function updateAudioStatus(playing) {
+                if (playing) {
+                    audioStatus.textContent = '🎵 音频播放中';
+                    audioStatus.style.color = 'rgba(255,255,255,0.3)';
+                } else {
+                    audioStatus.textContent = '⏸ 音频已暂停';
+                    audioStatus.style.color = 'rgba(255,255,255,0.15)';
+                }
+            }
+
+            // ===== 进入手机界面 =====
+            function enterPhoneMode() {
+                if (isActive) return;
+                isActive = true;
+
+                // 淡出问题层
+                questionLayer.style.opacity = '0';
+                setTimeout(() => {
+                    questionLayer.style.display = 'none';
+                }, 800);
+
+                // 显示手机容器
+                phoneContainer.classList.add('active');
+
+                // 播放音频
+                audio.play().then(() => {
+                    isAudioPlaying = true;
+                    updateAudioStatus(true);
+                }).catch((err) => {
+                    console.log('自动播放被阻止，等待用户手势', err.message);
+                    // 但我们已经有点击手势了，应该可以播放，不过以防万一
+                    // 如果失败，点击手机界面可再次尝试
+                    isAudioPlaying = false;
+                    updateAudioStatus(false);
+                });
+            }
+
+            // ===== 退出手机界面（返回黑屏） =====
+            function exitPhoneMode() {
+                if (!isActive) return;
+                isActive = false;
+
+                // 隐藏手机容器
+                phoneContainer.classList.remove('active');
+
+                // 暂停音频
+                audio.pause();
+                isAudioPlaying = false;
+                updateAudioStatus(false);
+
+                // 显示问题层
+                questionLayer.style.display = 'flex';
+                // 触发重排后淡入
+                requestAnimationFrame(() => {
+                    questionLayer.style.opacity = '1';
+                });
+            }
+
+            // ===== 切换（点击事件） =====
+            function toggleMode() {
+                if (isActive) {
+                    exitPhoneMode();
+                } else {
+                    enterPhoneMode();
+                }
+            }
+
+            // ===== 点击问题层 -> 进入 =====
+            questionLayer.addEventListener('click', function(e) {
+                e.stopPropagation();
+                enterPhoneMode();
+            });
+
+            // ===== 点击手机容器 -> 退出（或切换） =====
+            phoneContainer.addEventListener('click', function(e) {
+                e.stopPropagation();
+                // 我们设计为点击手机容器（包括背景）切换回黑屏
+                // 但用户可能想保留图片，所以可以切换
+                // 为了符合直觉，点击手机容器切换回问题层
+                exitPhoneMode();
+            });
+
+            // ===== 键盘 ESC 切换 =====
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    toggleMode();
+                }
+            });
+
+            // ===== 音频加载失败处理 =====
+            audio.addEventListener('error', function(e) {
+                console.warn('音频加载失败，请检查 1145.mp3 是否存在');
+                audioStatus.textContent = '⚠️ 音频不可用';
+                audioStatus.style.color = 'rgba(255,100,100,0.4)';
+            });
+
+            // ===== 页面可见性变化：如果音频正在播放，切到后台暂停，回来恢复 =====
+            document.addEventListener('visibilitychange', function() {
+                if (document.hidden) {
+                    if (isAudioPlaying) {
+                        audio.pause();
+                        // 不改变 isAudioPlaying，保留状态
+                    }
+                } else {
+                    if (isAudioPlaying && isActive) {
+                        audio.play().catch(() => {});
+                    }
+                }
+            });
+
+            // ===== 预加载图片 =====
+            const img = new Image();
+            img.src = 'OIP-C.jpg';
+
+            console.log('📱 点击“为什么要进来？”进入手机界面，音频自动播放');
+            console.log('🔄 点击手机界面或按 ESC 返回黑屏');
+        })();
+    </script>
+
+</body>
+</html>

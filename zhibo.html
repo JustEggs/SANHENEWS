@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>三河省电视台 · 直播</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #a80000;
+            --primary-dark: #6a0000;
+            --primary-light: #d42a2a;
+            --bg: #f0ece6;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --text-light: #3a3a3a;
+            --text-muted: #6a6a6a;
+            --border-light: #d4c8c0;
+            --border-dark: #b8a8a0;
+            --font-serif: 'Merriweather','Georgia',serif;
+            --font-sans: 'Roboto','Arial',sans-serif;
+            --live-black: #0a0a0a;
+            --live-gold: #ffd700;
+        }
+        html, body { height:100%; margin:0; padding:0; background:var(--bg); font-family:var(--font-sans); overflow:hidden; }
+
+        .live-app {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: var(--live-black);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* ===== 顶部标题栏 ===== */
+        .top-header {
+            flex-shrink: 0;
+            background: #0a0a0a;
+            padding: 12px 24px;
+            border-bottom: 2px solid rgba(255,215,0,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 20;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.30);
+        }
+        .top-header .site-title-wrapper {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 12px;
+        }
+        .top-header .site-icon {
+            height: 36px;
+            width: auto;
+            border-radius: 4px;
+            box-shadow: 0 0 12px rgba(255,255,255,0.05);
+            flex-shrink: 0;
+            transition: opacity 0.5s ease;
+        }
+        .top-header .title-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+        }
+        .top-header .site-title {
+            font-family: var(--font-serif);
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(255,215,0,0.08);
+            line-height: 1.1;
+        }
+        .top-header .site-title span { color: var(--live-gold); }
+        .top-header .site-sub {
+            font-size: 11px;
+            font-weight: 300;
+            color: rgba(255,255,255,0.35);
+            letter-spacing: 2px;
+            font-family: var(--font-sans);
+            text-transform: uppercase;
+        }
+        .top-header .live-badge {
+            background: #ff1744;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 4px 20px;
+            border-radius: 30px;
+            letter-spacing: 1px;
+            animation: pulseDot 1.2s infinite;
+            box-shadow: 0 0 16px rgba(255,23,68,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            line-height: 1.4;
+        }
+        @keyframes pulseDot { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
+
+        /* ===== 主体 ===== */
+        .live-main {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            position: relative;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        /* ===== 视频区域 ===== */
+        .video-wrapper {
+            flex: 1;
+            position: relative;
+            background: #0a0a0a;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 0;
+            min-height: 0;
+        }
+        .video-wrapper video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            background: #0a0a0a;
+        }
+        .video-wrapper .video-placeholder {
+            display: none;
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.7);
+            font-size: 20px;
+            gap: 16px;
+            background: radial-gradient(ellipse at center, #1a0a0a 0%, #0a0a0a 100%);
+            z-index: 2;
+            pointer-events: none;
+        }
+        .video-wrapper .video-placeholder i {
+            font-size: 48px;
+            opacity: 0.5;
+        }
+        .video-wrapper .video-placeholder span {
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 16px;
+            left: 20px;
+            font-size: 28px;
+            font-weight: 900;
+            color: rgba(255,255,255,0.20);
+            text-shadow: 0 2px 12px rgba(0,0,0,0.50);
+            letter-spacing: 4px;
+            pointer-events: none;
+            z-index: 15;
+            font-family: var(--font-serif);
+        }
+
+        /* ---- 加载遮罩 ---- */
+        .loading-overlay {
+            position: absolute;
+            top: 0; left: 0; width:100%; height:100%;
+            background: rgba(0,0,0,0.70);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 10;
+            transition: opacity 0.6s ease;
+        }
+        .loading-overlay.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .loading-spinner {
+            width:64px; height:64px;
+            border:4px solid rgba(255,215,0,0.15);
+            border-top-color: var(--live-gold);
+            border-radius:50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .loading-overlay p {
+            color: rgba(255,255,255,0.60);
+            margin-top: 18px;
+            font-size: 16px;
+            letter-spacing: 3px;
+            font-weight: 300;
+        }
+
+        /* ===== 右侧面板 ===== */
+        .right-panel {
+            flex: 0 0 16.666%;
+            min-width: 160px;
+            max-width: 280px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(8px);
+            border-left: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 8;
+            transition: flex 0.35s ease, opacity 0.35s ease, transform 0.35s ease;
+            overflow: hidden;
+            box-shadow: -4px 0 24px rgba(0,0,0,0.06);
+        }
+        .right-panel.collapsed {
+            flex: 0 0 0;
+            min-width: 0;
+            max-width: 0;
+            opacity: 0;
+            transform: translateX(20px);
+            border-left: none;
+        }
+        .panel-tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border-light);
+            flex-shrink: 0;
+            background: rgba(255,255,255,0.50);
+        }
+        .panel-tabs .tab-btn {
+            flex:1;
+            padding:10px 0;
+            border:none;
+            background:transparent;
+            font-size:14px;
+            font-weight:700;
+            color:var(--text-muted);
+            cursor:pointer;
+            font-family:var(--font-sans);
+            border-bottom:3px solid transparent;
+            transition:all 0.2s;
+            letter-spacing:0.5px;
+        }
+        .panel-tabs .tab-btn.active { color:var(--primary); border-bottom-color:var(--primary); }
+        .panel-tabs .tab-btn:hover { color:var(--primary); }
+
+        .panel-content {
+            flex:1;
+            overflow:hidden;
+            position:relative;
+            display:flex;
+            flex-direction:column;
+        }
+        .panel-content .tab-pane {
+            display:none;
+            flex-direction:column;
+            height:100%;
+            overflow:hidden;
+            animation:paneFade 0.25s ease;
+        }
+        .panel-content .tab-pane.active { display:flex; }
+        @keyframes paneFade { 0%{opacity:0.3;transform:translateY(6px);} 100%{opacity:1;transform:translateY(0);} }
+
+        /* ---- 评论 ---- */
+        .comment-pane { padding:8px 10px 10px 10px; gap:6px; }
+        .comment-pane .fixed-entry {
+            background: linear-gradient(135deg, rgba(168,0,0,0.06), rgba(212,42,42,0.10));
+            border-radius:8px; padding:6px 12px; margin-bottom:6px;
+            border-left:3px solid var(--primary);
+            display:flex; align-items:center; gap:8px;
+            font-size:14px; font-weight:600; color:var(--text);
+            flex-shrink:0; min-height:38px;
+            transform: translateX(100%);
+            opacity: 0;
+            transition: transform 0.6s ease, opacity 0.6s ease;
+        }
+        .comment-pane .fixed-entry.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        .comment-pane .fixed-entry .avatar-rotate {
+            display:inline-block;
+            transition:transform 0.6s ease;
+            font-size:18px;
+        }
+        .comment-pane .fixed-entry .avatar-rotate.spin { transform:rotate(720deg) scale(1.2); }
+        .comment-pane .fixed-entry .entry-text { flex:1; }
+        .comment-pane .fixed-entry .entry-badge {
+            background:var(--primary); color:#fff; font-size:10px;
+            padding:0 8px; border-radius:12px; font-weight:700;
+        }
+
+        .comment-list-scroll {
+            flex:1;
+            overflow-y:auto;
+            padding-right:4px;
+            margin-bottom:4px;
+            min-height:0;
+        }
+        .comment-list-scroll::-webkit-scrollbar { width:3px; }
+        .comment-list-scroll::-webkit-scrollbar-thumb { background:var(--border-dark); border-radius:10px; }
+
+        .comment-item-mini {
+            padding:6px 0;
+            border-bottom:1px solid rgba(200,160,160,0.12);
+            font-size:13px;
+            color:var(--text-light);
+            display:flex;
+            gap:6px;
+            align-items:baseline;
+        }
+        .comment-item-mini .c-author {
+            font-weight:700;
+            color:var(--primary);
+            font-size:13px;
+            flex-shrink:0;
+        }
+        .comment-item-mini .c-text {
+            word-break:break-all;
+            flex:1;
+        }
+        .comment-item-mini .c-time {
+            font-size:11px;
+            color:var(--text-muted);
+            flex-shrink:0;
+        }
+
+        /* 寒心专属评论 */
+        .comment-item-mini.hanxin {
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            padding: 6px 12px;
+            background: rgba(168,0,0,0.07);
+            margin-bottom: 4px;
+            box-shadow: 0 0 12px rgba(168,0,0,0.08);
+        }
+        .comment-item-mini.hanxin .c-author {
+            color: var(--primary);
+            font-weight: 900;
+        }
+        .comment-item-mini.hanxin .c-text {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .comment-input-row {
+            display:flex; gap:6px; flex-shrink:0; padding-top:6px;
+            border-top:1px solid var(--border-light);
+        }
+        .comment-input-row input {
+            flex:1; padding:6px 10px; border:1px solid var(--border-light);
+            border-radius:20px; font-size:13px; outline:none;
+            font-family:var(--font-sans); transition:border-color 0.2s;
+            background:rgba(255,255,255,0.60);
+        }
+        .comment-input-row input:focus { border-color:var(--primary); }
+        .comment-input-row button {
+            padding:6px 16px; border:none; border-radius:20px;
+            background:linear-gradient(135deg, var(--primary-light), var(--primary));
+            color:#fff; font-weight:700; font-size:13px; cursor:pointer;
+            transition:transform 0.15s, box-shadow 0.2s;
+            font-family:var(--font-sans); white-space:nowrap;
+        }
+        .comment-input-row button:hover { transform:scale(1.04); box-shadow:0 2px 12px rgba(200,50,50,0.25); }
+
+        /* ---- 节目单 ---- */
+        .program-pane {
+            padding:12px 16px;
+            background:var(--program-bg);
+            backdrop-filter:blur(6px);
+            color:#f0e8e0;
+            display:flex;
+            flex-direction:column;
+            gap:8px;
+        }
+        .program-pane .prog-title {
+            font-size:16px; font-weight:700; color:var(--live-gold);
+            border-bottom:1px solid rgba(255,215,0,0.20);
+            padding-bottom:8px;
+            display:flex; align-items:center; gap:8px;
+        }
+        .program-pane .prog-title i { font-size:18px; }
+        .program-pane .current-program {
+            font-size:20px;
+            font-weight:700;
+            padding:12px 0;
+            text-align:center;
+            background:rgba(255,255,255,0.05);
+            border-radius:8px;
+            border:1px solid rgba(255,215,0,0.10);
+        }
+        .program-pane .current-program .prog-name { color:#fff; letter-spacing:1px; }
+        .program-pane .current-program .prog-status {
+            font-size:16px;
+            font-weight:500;
+            margin-top:4px;
+        }
+        .program-pane .current-program .prog-status.live { color:#ff5252; animation:pulseDot 1.2s infinite; }
+        .program-pane .current-program .prog-status.record { color:#4caf50; }
+        .program-pane .current-time {
+            font-size:13px;
+            color:rgba(255,255,255,0.50);
+            text-align:center;
+            border-top:1px solid rgba(255,255,255,0.06);
+            padding-top:8px;
+        }
+
+        /* ===== 折叠切换按钮 ===== */
+        .panel-toggle-btn {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 20;
+            width: 28px;
+            height: 64px;
+            background: rgba(0,0,0,0.40);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.10);
+            border-right: none;
+            border-radius: 8px 0 0 8px;
+            color: rgba(255,255,255,0.70);
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: -2px 0 12px rgba(0,0,0,0.20);
+            pointer-events: auto;
+            user-select: none;
+        }
+        .panel-toggle-btn:hover { background:rgba(0,0,0,0.60); color:#fff; width:32px; }
+        .panel-toggle-btn.hidden { display:none; }
+
+        /* ===== 底部控制栏 ===== */
+        .bottom-controls {
+            flex-shrink:0;
+            height:52px;
+            background:rgba(0,0,0,0.70);
+            backdrop-filter:blur(6px);
+            border-top:1px solid rgba(255,255,255,0.06);
+            display:flex;
+            align-items:center;
+            padding:0 24px;
+            gap:16px;
+            z-index:12;
+            color:rgba(255,255,255,0.70);
+        }
+        .bottom-controls .ctrl-left {
+            display:flex; align-items:center; gap:14px; flex:1;
+        }
+        .bottom-controls .ctrl-left .live-dot {
+            width:10px; height:10px; border-radius:50%; background:#ff1744;
+            animation:pulseDot 1.2s infinite;
+            box-shadow:0 0 12px rgba(255,23,68,0.40);
+        }
+        .bottom-controls .ctrl-left .live-label {
+            font-size:14px; font-weight:700; color:#fff; letter-spacing:1px;
+        }
+        .bottom-controls .ctrl-left .live-label small {
+            font-weight:300; color:rgba(255,255,255,0.40); font-size:12px; margin-left:6px;
+        }
+        .bottom-controls .ctrl-right {
+            display:flex; align-items:center; gap:12px;
+        }
+        .bottom-controls .ctrl-btn {
+            background:transparent; border:none; color:rgba(255,255,255,0.60);
+            font-size:20px; cursor:pointer; transition:color 0.2s, transform 0.15s;
+            padding:6px; border-radius:6px;
+        }
+        .bottom-controls .ctrl-btn:hover { color:#fff; transform:scale(1.10); }
+        .bottom-controls .ctrl-btn.fullscreen-active { color:var(--live-gold); }
+
+        .volume-slider-wrapper {
+            display:flex; align-items:center; gap:8px;
+        }
+        .volume-slider-wrapper input[type="range"] {
+            width:80px; height:4px; -webkit-appearance:none;
+            background:rgba(255,255,255,0.25); border-radius:2px; outline:none; cursor:pointer;
+        }
+        .volume-slider-wrapper input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
+            background:#fff; cursor:pointer; border:1px solid rgba(255,255,255,0.3);
+            box-shadow:0 0 8px rgba(0,0,0,0.3);
+        }
+        .volume-slider-wrapper input[type="range"]::-moz-range-thumb {
+            width:14px; height:14px; border-radius:50%; background:#fff; cursor:pointer;
+            border:1px solid rgba(255,255,255,0.3);
+        }
+        .volume-slider-wrapper .volume-icon {
+            font-size:18px; color:rgba(255,255,255,0.60); min-width:24px; text-align:center; cursor:pointer;
+        }
+        .volume-slider-wrapper .volume-value {
+            font-size:12px; font-weight:600; color:rgba(255,255,255,0.50); min-width:32px; text-align:center;
+        }
+
+        /* ===== 页脚 ===== */
+        .footer {
+            flex-shrink:0;
+            background: linear-gradient(180deg, #0a0a0a 0%, #3a0000 50%, #6a0000 100%);
+            color: rgba(255,255,255,0.55);
+            padding: 12px 24px;
+            border-top: 2px solid rgba(255,215,0,0.08);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.30);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 5;
+            font-size: 14px;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+        .footer .copyright {
+            color: rgba(255,255,255,0.45);
+            text-shadow: 0 1px 4px rgba(0,0,0,0.20);
+        }
+
+        /* ===== 全屏模式 ===== */
+        .live-app.fullscreen-mode .right-panel { display:none !important; }
+        .live-app.fullscreen-mode .panel-toggle-btn { display:none !important; }
+        .live-app.fullscreen-mode .bottom-controls { height:48px; }
+        .live-app.fullscreen-mode .footer { display:none; }
+
+        /* ===== 响应式 ===== */
+        @media (max-width:820px) {
+            .right-panel { flex:0 0 200px; min-width:140px; }
+            .right-panel.collapsed { flex:0 0 0; min-width:0; }
+            .top-header .site-title { font-size:22px; }
+            .top-header .site-sub { font-size:10px; }
+            .top-header .live-badge { font-size:12px; padding:3px 16px; }
+            .top-header .site-icon { height:30px; }
+            .bottom-controls .ctrl-left .live-label { font-size:12px; }
+            .bottom-controls .ctrl-btn { font-size:16px; }
+            .panel-toggle-btn { width:22px; height:50px; font-size:14px; }
+            .volume-slider-wrapper input[type="range"] { width:60px; }
+            .footer { font-size:12px; padding:10px 16px; }
+        }
+        @media (max-width:600px) {
+            .right-panel { flex:0 0 160px; min-width:100px; }
+            .right-panel.collapsed { flex:0 0 0; min-width:0; }
+            .top-header { padding:8px 12px; flex-wrap:wrap; gap:6px; }
+            .top-header .site-title { font-size:18px; }
+            .top-header .site-sub { font-size:9px; }
+            .top-header .live-badge { font-size:10px; padding:2px 12px; }
+            .top-header .site-icon { height:26px; }
+            .comment-pane .fixed-entry { font-size:12px; padding:4px 10px; min-height:30px; }
+            .comment-item-mini { font-size:12px; }
+            .comment-item-mini.hanxin { padding:4px 10px; }
+            .comment-input-row input { font-size:12px; padding:4px 8px; }
+            .comment-input-row button { font-size:12px; padding:4px 12px; }
+            .bottom-controls { height:44px; padding:0 12px; }
+            .bottom-controls .ctrl-btn { font-size:14px; }
+            .program-pane .prog-title { font-size:14px; }
+            .program-pane .current-program { font-size:16px; }
+            .watermark { font-size:20px; left:12px; top:12px; }
+            .panel-toggle-btn { width:18px; height:40px; font-size:12px; }
+            .volume-slider-wrapper input[type="range"] { width:50px; }
+            .volume-slider-wrapper .volume-value { font-size:10px; min-width:24px; }
+            .footer { font-size:11px; padding:8px 12px; }
+        }
+        :root {
+            --panel-bg: rgba(255,255,255,0.94);
+            --panel-border: rgba(200,160,160,0.30);
+            --program-bg: rgba(0,0,0,0.55);
+        }
+
+        /* ===== 彩蛋样式 ===== */
+        .easter-mode * {
+            color: #ff0000 !important;
+        }
+        .easter-mode .top-header,
+        .easter-mode .footer {
+            background: #000000 !important;
+            border-color: #000000 !important;
+        }
+        .easter-mode .top-header .site-title span,
+        .easter-mode .top-header .site-sub,
+        .easter-mode .top-header .live-badge {
+            color: #ff0000 !important;
+        }
+        .easter-mode .bottom-controls,
+        .easter-mode .right-panel,
+        .easter-mode .panel-tabs,
+        .easter-mode .comment-pane,
+        .easter-mode .program-pane {
+            background: #000000 !important;
+        }
+        .easter-mode .panel-tabs .tab-btn {
+            color: #ff0000 !important;
+        }
+        .easter-mode .panel-tabs .tab-btn.active {
+            border-bottom-color: #ff0000 !important;
+        }
+        .easter-mode .comment-item-mini .c-author,
+        .easter-mode .comment-item-mini .c-text,
+        .easter-mode .comment-item-mini .c-time {
+            color: #ff0000 !important;
+        }
+        .easter-mode .comment-input-row input,
+        .easter-mode .comment-input-row button {
+            color: #ff0000 !important;
+            background: #222 !important;
+            border-color: #ff0000 !important;
+        }
+        .easter-mode .comment-input-row input::placeholder {
+            color: #ff0000 !important;
+        }
+        /* 血滴容器 */
+        .blood-drops {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            overflow: hidden;
+        }
+        .blood-drop {
+            position: absolute;
+            width: 8px;
+            height: 12px;
+            background: #8b0000;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            opacity: 0.8;
+            box-shadow: 0 0 6px #8b0000;
+            animation: bloodFall linear infinite;
+        }
+        @keyframes bloodFall {
+            0% { transform: translateY(-20px) scale(1); opacity: 0.9; }
+            100% { transform: translateY(110vh) scale(0.6); opacity: 0.2; }
+        }
+        /* 文字淡入动画 */
+        .easter-text {
+            transition: opacity 0.4s ease;
+            opacity: 0;
+        }
+        .easter-text.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="live-app" id="liveApp">
+
+        <!-- ===== 顶部标题栏 ===== -->
+        <header class="top-header">
+            <div class="site-title-wrapper">
+                <img src="images/1000072813_transparent.jpg" alt="图标" class="site-icon" onerror="this.style.display='none'" />
+                <div class="title-group">
+                    <div class="site-title">三河省<span>电视台</span></div>
+                    <div class="site-sub">Sanhe Provincial TV</div>
+                </div>
+            </div>
+            <span class="live-badge">直播</span>
+        </header>
+
+        <!-- ===== 主体 ===== -->
+        <div class="live-main">
+
+            <!-- ===== 视频区域 ===== -->
+            <div class="video-wrapper" id="videoWrapper">
+                <video id="liveVideo" autoplay loop muted playsinline>
+                    <source src="images/zhibo.mp4" type="video/mp4">
+                    您的浏览器不支持视频播放。
+                </video>
+                <div class="video-placeholder" id="videoPlaceholder">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>直播未正常加载</span>
+                </div>
+                <div class="watermark">WMJTV</div>
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="loading-spinner"></div>
+                    <p id="loadingText">加载直播流...</p>
+                </div>
+                <div class="panel-toggle-btn" id="panelToggleBtn" title="展开/折叠侧边栏">
+                    <i class="fas fa-chevron-right" id="toggleIcon"></i>
+                </div>
+                <!-- 彩蛋图片（初始隐藏） -->
+                <img id="easterImage" src="images/tiaolian.jpg" style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; z-index:3;" alt="tiaolian" />
+                <!-- 血滴容器 -->
+                <div class="blood-drops" id="bloodDrops" style="display:none;"></div>
+            </div>
+
+            <!-- ===== 右侧面板 ===== -->
+            <div class="right-panel" id="rightPanel">
+                <div class="panel-tabs">
+                    <button class="tab-btn active" data-tab="comment"><i class="fas fa-comment-dots"></i> 评论</button>
+                    <button class="tab-btn" data-tab="program"><i class="fas fa-list-ul"></i> 节目单</button>
+                </div>
+                <div class="panel-content">
+                    <div class="tab-pane active comment-pane" id="paneComment">
+                        <div class="fixed-entry" id="fixedEntry">
+                            <span class="avatar-rotate" id="entryAvatar"><i class="fas fa-user-circle"></i></span>
+                            <span class="entry-text" id="entryText">-- 加入直播间</span>
+                            <span class="entry-badge" id="entryBadge">NEW</span>
+                        </div>
+                        <div class="comment-list-scroll" id="commentListScroll">
+                            <div id="commentListInner"></div>
+                        </div>
+                        <div class="comment-input-row">
+                            <input type="text" id="commentInput" placeholder="说点什么..." maxlength="50" />
+                            <button id="sendCommentBtn"><i class="fas fa-paper-plane"></i> 发送</button>
+                        </div>
+                    </div>
+                    <div class="tab-pane program-pane" id="paneProgram">
+                        <div class="prog-title"><i class="fas fa-tv"></i> 当前节目</div>
+                        <div class="current-program" id="currentProgram">
+                            <div class="prog-name">《开学必备课》</div>
+                            <div class="prog-status" id="programStatus">直播中</div>
+                        </div>
+                        <div class="current-time" id="currentTimeDisplay">--:--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 底部控制栏 ===== -->
+        <div class="bottom-controls">
+            <div class="ctrl-left">
+                <span class="live-dot"></span>
+                <span class="live-label">LIVE <small>三河省电视台</small></span>
+            </div>
+            <div class="ctrl-right">
+                <div class="volume-slider-wrapper">
+                    <span class="volume-icon" id="volumeIcon"><i class="fas fa-volume-up"></i></span>
+                    <input type="range" id="volumeSlider" min="0" max="100" value="80" />
+                    <span class="volume-value" id="volumeDisplay">80%</span>
+                </div>
+                <button class="ctrl-btn" id="fullscreenBtn" title="全屏"><i class="fas fa-expand"></i></button>
+                <button class="ctrl-btn" id="settingsBtn" title="设置"><i class="fas fa-cog"></i></button>
+            </div>
+        </div>
+
+        <!-- ===== 页脚 ===== -->
+        <footer class="footer">
+            <span class="copyright">&copy; 2026 三河省新闻网 · 立足三河 · 服务民生</span>
+        </footer>
+
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ================================================================
+            //  配置
+            // ================================================================
+            const CONFIG = {
+                texts: {
+                    fixedEntry: '-- 加入直播间',
+                    commentPlaceholder: '说点什么...',
+                    sendBtn: '发送',
+                    loadingText: '加载直播流...',
+                },
+                userPool: ['热心市民', '三河老张', '河东李姐', '省城小刘', '河西老王', '南山小赵', '北城老周', '东区阿芳', '中心老陈', '三河小迷妹', '路人甲', '弹幕君'],
+                commentPool: [
+                    '这个节目太棒了！', '三河省电视台越来越好', '支持本地媒体', '《开学必备课》必看',
+                    '哈哈哈笑死我了', '弹幕走起！', '今天天气真好', '期待下一期'
+                ],
+            };
+
+            function getText(key) { return CONFIG.texts[key] || ''; }
+            function setText(key, value) {
+                if (CONFIG.texts.hasOwnProperty(key)) {
+                    CONFIG.texts[key] = value;
+                    const domMap = {
+                        fixedEntry: 'entryText',
+                        commentPlaceholder: 'commentInput',
+                        sendBtn: 'sendCommentBtn',
+                        loadingText: 'loadingText',
+                    };
+                    if (domMap[key]) {
+                        const el = document.getElementById(domMap[key]);
+                        if (el) {
+                            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = value;
+                            else if (el.tagName === 'BUTTON') el.textContent = value;
+                            else el.textContent = value;
+                        }
+                    }
+                }
+            }
+
+            function getRandomItem(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+            // ================================================================
+            //  直播 APP
+            // ================================================================
+            const App = {
+                state: {
+                    isFullscreen: false,
+                    panelCollapsed: false,
+                    activeTab: 'comment',
+                    loadComplete: false,
+                    volume: 80,
+                    muted: true,
+                    fixedCommentAdded: false,
+                    easterTriggered: false,
+                },
+                els: {},
+                _commentInterval: null,
+                _bloodInterval: null,
+
+                init() {
+                    this.cacheDoms();
+                    this.bindEvents();
+                    this.updateProgramStatus();
+                    this.initVideo();
+                    this.updateVolumeUI();
+                    setInterval(() => this.updateProgramStatus(), 10000);
+
+                    window.__liveConfig = {
+                        getText,
+                        setText,
+                        app: this,
+                    };
+                    console.log('[直播] 已就绪');
+                },
+
+                cacheDoms() {
+                    const ids = [
+                        'liveApp', 'videoWrapper', 'liveVideo', 'videoPlaceholder',
+                        'loadingOverlay', 'loadingText',
+                        'rightPanel', 'panelToggleBtn', 'toggleIcon',
+                        'paneComment', 'paneProgram', 'commentListInner',
+                        'commentInput', 'sendCommentBtn', 'fixedEntry',
+                        'entryAvatar', 'entryText', 'entryBadge',
+                        'fullscreenBtn', 'volumeSlider', 'volumeDisplay',
+                        'volumeIcon', 'settingsBtn', 'commentListScroll',
+                        'programStatus', 'currentTimeDisplay',
+                        'easterImage', 'bloodDrops',
+                    ];
+                    ids.forEach(id => { this.els[id] = document.getElementById(id); });
+                    this.els.tabBtns = document.querySelectorAll('.panel-tabs .tab-btn');
+                },
+
+                bindEvents() {
+                    this.els.panelToggleBtn.addEventListener('click', () => { this.togglePanel(); });
+                    this.els.tabBtns.forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const tab = btn.dataset.tab;
+                            this.switchTab(tab);
+                        });
+                    });
+                    this.els.fullscreenBtn.addEventListener('click', () => { this.toggleFullscreen(); });
+                    this.els.sendCommentBtn.addEventListener('click', () => this.sendComment());
+                    this.els.commentInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') { e.preventDefault();
+                            this.sendComment(); }
+                    });
+                    this.els.volumeSlider.addEventListener('input', (e) => {
+                        this.state.volume = parseInt(e.target.value, 10);
+                        this.state.muted = false;
+                        this.updateVolumeUI();
+                        if (this.els.liveVideo) {
+                            this.els.liveVideo.volume = this.state.volume / 100;
+                            this.els.liveVideo.muted = false;
+                        }
+                    });
+                    this.els.volumeIcon.addEventListener('click', () => {
+                        this.state.muted = !this.state.muted;
+                        this.updateVolumeUI();
+                        if (this.els.liveVideo) {
+                            this.els.liveVideo.muted = this.state.muted;
+                            if (!this.state.muted) {
+                                this.els.liveVideo.volume = this.state.volume / 100;
+                            }
+                        }
+                    });
+                    this.els.settingsBtn.addEventListener('click', () => alert('⚙️ 设置 (模拟)'));
+
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape' && this.state.isFullscreen) this.exitFullscreen();
+                    });
+                    document.addEventListener('fullscreenchange', () => {
+                        if (!document.fullscreenElement && this.state.isFullscreen) this.exitFullscreen();
+                    });
+                    document.addEventListener('webkitfullscreenchange', () => {
+                        if (!document.webkitFullscreenElement && this.state.isFullscreen) this.exitFullscreen();
+                    });
+                },
+
+                // ---- 视频初始化 ----
+                initVideo() {
+                    const video = this.els.liveVideo;
+                    const overlay = this.els.loadingOverlay;
+                    const placeholder = this.els.videoPlaceholder;
+
+                    video.style.display = 'block';
+                    video.style.width = '100%';
+                    video.style.height = '100%';
+                    video.muted = true;
+                    video.loop = true;
+                    video.volume = this.state.volume / 100;
+
+                    const onLoaded = () => {
+                        overlay.classList.add('hide');
+                        placeholder.style.display = 'none';
+                        this.state.loadComplete = true;
+                        video.play().then(() => {
+                            console.log('[视频] 播放成功');
+                        }).catch(err => {
+                            console.warn('[视频] 自动播放被阻止，等待用户交互', err);
+                            const playOnClick = () => {
+                                video.play().catch(() => {});
+                                document.removeEventListener('click', playOnClick);
+                                document.removeEventListener('touchstart', playOnClick);
+                            };
+                            document.addEventListener('click', playOnClick);
+                            document.addEventListener('touchstart', playOnClick);
+                        });
+                        setTimeout(() => { this.showFixedEntry(); }, 600);
+                        this.startSimulatedComments();
+                    };
+
+                    video.addEventListener('loadeddata', onLoaded);
+                    video.addEventListener('canplay', onLoaded);
+
+                    video.addEventListener('error', () => {
+                        overlay.classList.add('hide');
+                        placeholder.style.display = 'flex';
+                        this.state.loadComplete = true;
+                        setTimeout(() => { this.showFixedEntry(); }, 600);
+                        this.startSimulatedComments();
+                    });
+
+                    if (video.readyState >= 3) {
+                        onLoaded();
+                        return;
+                    }
+
+                    setTimeout(() => {
+                        if (!this.state.loadComplete) {
+                            overlay.classList.add('hide');
+                            if (video.src) {
+                                video.play().catch(() => {});
+                            } else {
+                                placeholder.style.display = 'flex';
+                            }
+                            this.state.loadComplete = true;
+                            setTimeout(() => { this.showFixedEntry(); }, 600);
+                            this.startSimulatedComments();
+                        }
+                    }, 5000);
+
+                    video.addEventListener('ended', () => {
+                        if (!video.loop) {
+                            video.currentTime = 0;
+                            video.play().catch(() => {});
+                        }
+                    });
+                },
+
+                // ---- 模拟评论 ----
+                startSimulatedComments() {
+                    if (this._commentInterval) {
+                        clearInterval(this._commentInterval);
+                        this._commentInterval = null;
+                    }
+                    this._commentInterval = setInterval(() => {
+                        if (this.state.panelCollapsed || this.state.easterTriggered) return;
+                        const list = this.els.commentListInner;
+                        const text = getRandomItem(CONFIG.commentPool);
+                        const author = getRandomItem(CONFIG.userPool);
+                        const item = document.createElement('div');
+                        item.className = 'comment-item-mini';
+                        const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                        item.innerHTML = `
+                            <span class="c-author">${author}</span>
+                            <span class="c-text">${text}</span>
+                            <span class="c-time">${time}</span>
+                        `;
+                        list.appendChild(item);
+                        while (list.children.length > 60) list.removeChild(list.firstChild);
+                        const scroll = this.els.commentListScroll;
+                        scroll.scrollTop = scroll.scrollHeight;
+                    }, 4500);
+                },
+
+                // ---- 固定入场评论 ----
+                showFixedEntry() {
+                    if (this.state.fixedCommentAdded) return;
+                    this.state.fixedCommentAdded = true;
+
+                    const entry = this.els.fixedEntry;
+                    const avatar = this.els.entryAvatar;
+                    const text = this.els.entryText;
+                    const badge = this.els.entryBadge;
+
+                    const pool = CONFIG.userPool;
+                    const firstName = getRandomItem(pool);
+                    text.textContent = firstName + ' 加入直播间';
+
+                    entry.classList.add('show');
+                    avatar.classList.remove('spin');
+                    badge.textContent = 'NEW';
+                    badge.style.display = 'inline-block';
+                    badge.style.backgroundColor = 'var(--primary)';
+                    badge.style.opacity = '1';
+
+                    setTimeout(() => avatar.classList.add('spin'), 400);
+
+                    setTimeout(() => {
+                        avatar.classList.remove('spin');
+                        const secondName = getRandomItem(pool);
+                        text.textContent = secondName + ' 加入直播间';
+                        badge.textContent = '已加入';
+                        badge.style.backgroundColor = '#4caf50';
+                        badge.style.color = '#fff';
+                        this.addFixedComment(secondName);
+                    }, 1200);
+
+                    setTimeout(() => { badge.style.opacity = '0.6'; }, 3000);
+                },
+
+                addFixedComment(name) {
+                    const list = this.els.commentListInner;
+                    const item = document.createElement('div');
+                    item.className = 'comment-item-mini';
+                    item.style.background = 'rgba(168,0,0,0.04)';
+                    item.style.borderRadius = '4px';
+                    item.style.padding = '4px 8px';
+                    item.style.marginBottom = '4px';
+                    item.innerHTML = `
+                        <span class="c-author"><i class="fas fa-user-check" style="color:var(--primary);"></i> ${name}</span>
+                        <span class="c-text">加入了直播间 🎉</span>
+                        <span class="c-time">刚刚</span>
+                    `;
+                    list.prepend(item);
+                    while (list.children.length > 50) list.removeChild(list.lastChild);
+                },
+
+                // ---- 面板切换 ----
+                togglePanel() {
+                    this.state.panelCollapsed = !this.state.panelCollapsed;
+                    this.els.rightPanel.classList.toggle('collapsed', this.state.panelCollapsed);
+                    this.els.toggleIcon.className = this.state.panelCollapsed ? 'fas fa-chevron-left' :
+                    'fas fa-chevron-right';
+                },
+
+                switchTab(tab) {
+                    this.state.activeTab = tab;
+                    this.els.tabBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+                    document.getElementById('paneComment').classList.toggle('active', tab === 'comment');
+                    document.getElementById('paneProgram').classList.toggle('active', tab === 'program');
+                },
+
+                // ---- 全屏 ----
+                toggleFullscreen() {
+                    if (this.state.isFullscreen) this.exitFullscreen();
+                    else this.enterFullscreen();
+                },
+
+                enterFullscreen() {
+                    const el = this.els.liveApp;
+                    if (el.requestFullscreen) el.requestFullscreen();
+                    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                    else if (el.msRequestFullscreen) el.msRequestFullscreen();
+                    else this.simulateFullscreen(true);
+                    this.state.isFullscreen = true;
+                    this.els.liveApp.classList.add('fullscreen-mode');
+                    this.els.fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+                    this.els.fullscreenBtn.classList.add('fullscreen-active');
+                },
+
+                exitFullscreen() {
+                    if (document.fullscreenElement) document.exitFullscreen();
+                    else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
+                    else if (document.msFullscreenElement) document.msExitFullscreen();
+                    else this.simulateFullscreen(false);
+                    this.state.isFullscreen = false;
+                    this.els.liveApp.classList.remove('fullscreen-mode');
+                    this.els.fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+                    this.els.fullscreenBtn.classList.remove('fullscreen-active');
+                },
+
+                simulateFullscreen(enter) {
+                    if (enter) {
+                        this.els.liveApp.style.position = 'fixed';
+                        this.els.liveApp.style.top = '0';
+                        this.els.liveApp.style.left = '0';
+                        this.els.liveApp.style.width = '100vw';
+                        this.els.liveApp.style.height = '100vh';
+                        this.els.liveApp.style.zIndex = '9999';
+                        this.els.liveApp.style.background = '#0a0a0a';
+                        this.state.isFullscreen = true;
+                        this.els.liveApp.classList.add('fullscreen-mode');
+                        this.els.fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+                        this.els.fullscreenBtn.classList.add('fullscreen-active');
+                    } else {
+                        this.els.liveApp.style.position = '';
+                        this.els.liveApp.style.top = '';
+                        this.els.liveApp.style.left = '';
+                        this.els.liveApp.style.width = '';
+                        this.els.liveApp.style.height = '';
+                        this.els.liveApp.style.zIndex = '';
+                        this.els.liveApp.style.background = '';
+                        this.state.isFullscreen = false;
+                        this.els.liveApp.classList.remove('fullscreen-mode');
+                        this.els.fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+                        this.els.fullscreenBtn.classList.remove('fullscreen-active');
+                    }
+                },
+
+                // ---- 子序列匹配检测（用于“你们是人吗”） ----
+                isTrigger(text) {
+                    const target = '你们是人吗';
+                    let j = 0;
+                    for (let i = 0; i < text.length && j < target.length; i++) {
+                        if (text[i] === target[j]) {
+                            j++;
+                        }
+                    }
+                    return j >= 3;
+                },
+
+                // ---- 检测特殊彩蛋字符串 ----
+                isEasterTrigger(text) {
+                    const target = '儍僷卮蒞議뀨ꁔꂽڦ뀕ᵮꅐ쫹콩얀';
+                    const cleaned = text.replace(/\s/g, '');
+                    return cleaned.includes(target);
+                },
+
+                // ---- ★ 触发彩蛋（全功能增强版） ----
+                triggerEaster() {
+                    if (this.state.easterTriggered) return;
+                    this.state.easterTriggered = true;
+
+                    // 1. 停止所有定时器
+                    if (this._commentInterval) {
+                        clearInterval(this._commentInterval);
+                        this._commentInterval = null;
+                    }
+
+                    // 2. 视频暂停并隐藏，显示图片
+                    const video = this.els.liveVideo;
+                    video.pause();
+                    video.style.display = 'none';
+                    this.els.easterImage.style.display = 'block';
+
+                    // 3. 隐藏顶部图标
+                    const icon = document.querySelector('.site-icon');
+                    if (icon) icon.style.opacity = '0';
+
+                    // 4. 播放音频
+                    const audio = new Audio('images/2.mp3');
+                    audio.loop = false;
+                    audio.play().catch(() => console.log('音频播放失败，可能用户未交互'));
+
+                    // 5. 启动血雨（更密集）
+                    this.startBloodDrops();
+
+                    // 6. 添加彩蛋样式（红色主题）
+                    document.body.classList.add('easter-mode');
+
+                    // 7. 收集所有文本节点（排除 script/style/input/textarea 的值）
+                    const walker = document.createTreeWalker(
+                        document.body,
+                        NodeFilter.SHOW_TEXT,
+                        {
+                            acceptNode: function(node) {
+                                const parent = node.parentElement;
+                                if (!parent) return NodeFilter.FILTER_REJECT;
+                                const tag = parent.tagName;
+                                if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') return NodeFilter
+                                    .FILTER_REJECT;
+                                if (tag === 'INPUT' || tag === 'TEXTAREA') return NodeFilter.FILTER_REJECT;
+                                return NodeFilter.FILTER_ACCEPT;
+                            }
+                        },
+                        false
+                    );
+                    const textNodes = [];
+                    let node;
+                    while (node = walker.nextNode()) {
+                        textNodes.push(node);
+                    }
+
+                    // 8. 替换所有文本内容为目标文字
+                    const targetText = '王晓回来吧我们在找你';
+                    textNodes.forEach(n => n.textContent = targetText);
+
+                    // 处理 input 和 textarea 的 value 和 placeholder
+                    const inputs = document.querySelectorAll('input, textarea');
+                    inputs.forEach(inp => {
+                        if (inp.type !== 'hidden') {
+                            inp.value = targetText;
+                            inp.placeholder = targetText;
+                        }
+                    });
+                    // 处理按钮文本
+                    const buttons = document.querySelectorAll('button:not(.ctrl-btn)');
+                    buttons.forEach(btn => {
+                        btn.textContent = targetText;
+                    });
+
+                    // 9. 准备父元素列表（去重），用于逐字渐显
+                    const parentSet = new Set();
+                    textNodes.forEach(n => {
+                        const parent = n.parentElement;
+                        if (parent) parentSet.add(parent);
+                    });
+                    // 输入框和按钮本身也加入
+                    inputs.forEach(inp => parentSet.add(inp));
+                    buttons.forEach(btn => parentSet.add(btn));
+
+                    const elements = Array.from(parentSet);
+
+                    // 10. 先让所有元素透明度为0（瞬间消失）
+                    elements.forEach(el => {
+                        el.style.transition = 'none';
+                        el.style.opacity = '0';
+                    });
+                    // 强制回流
+                    document.body.offsetHeight;
+
+                    // 11. 恢复过渡效果，逐个渐显（每个元素间隔 30ms）
+                    elements.forEach((el, index) => {
+                        setTimeout(() => {
+                            el.style.transition = 'opacity 0.35s ease';
+                            el.style.opacity = '1';
+                        }, index * 30);
+                    });
+
+                    // 12. 禁用输入框和发送按钮
+                    this.els.commentInput.disabled = true;
+                    this.els.sendCommentBtn.disabled = true;
+                },
+
+                // ---- 血雨（增强版） ----
+                startBloodDrops() {
+                    const container = this.els.bloodDrops;
+                    container.style.display = 'block';
+                    // 清除旧血滴
+                    container.innerHTML = '';
+                    const count = 150;
+                    for (let i = 0; i < count; i++) {
+                        const drop = document.createElement('div');
+                        drop.className = 'blood-drop';
+                        drop.style.left = Math.random() * 100 + '%';
+                        drop.style.animationDuration = (2 + Math.random() * 5) + 's';
+                        drop.style.animationDelay = (Math.random() * 10) + 's';
+                        drop.style.width = (3 + Math.random() * 12) + 'px';
+                        drop.style.height = (5 + Math.random() * 18) + 'px';
+                        drop.style.opacity = 0.3 + Math.random() * 0.6;
+                        container.appendChild(drop);
+                    }
+                },
+
+                // ---- 发送评论（核心修改） ----
+                sendComment() {
+                    const input = this.els.commentInput;
+                    const text = input.value.trim();
+                    if (!text || !this.state.loadComplete || this.state.easterTriggered) return;
+
+                    // 优先检测彩蛋触发
+                    if (this.isEasterTrigger(text)) {
+                        this.triggerEaster();
+                        input.value = '';
+                        input.disabled = true;
+                        this.els.sendCommentBtn.disabled = true;
+                        return;
+                    }
+
+                    // 检测“你们是人吗”触发
+                    if (this.isTrigger(text)) {
+                        if (this._commentInterval) {
+                            clearInterval(this._commentInterval);
+                            this._commentInterval = null;
+                        }
+                        const list = this.els.commentListInner;
+                        const count = 10;
+                        for (let i = 0; i < count; i++) {
+                            const author = getRandomItem(CONFIG.userPool);
+                            const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                            const item = document.createElement('div');
+                            item.className = 'comment-item-mini';
+                            item.innerHTML = `
+                                <span class="c-author">${author}</span>
+                                <span class="c-text">是</span>
+                                <span class="c-time">${time}</span>
+                            `;
+                            list.appendChild(item);
+                        }
+                        this.els.commentListScroll.scrollTop = this.els.commentListScroll.scrollHeight;
+                        this.startSimulatedComments();
+                    }
+
+                    // 发送寒心评论
+                    const list = this.els.commentListInner;
+                    const item = document.createElement('div');
+                    item.className = 'comment-item-mini hanxin';
+                    const author = '寒心';
+                    const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                    item.innerHTML = `
+                        <span class="c-author">${author}</span>
+                        <span class="c-text">${text}</span>
+                        <span class="c-time">${time}</span>
+                    `;
+                    list.appendChild(item);
+                    this.els.commentListScroll.scrollTop = this.els.commentListScroll.scrollHeight;
+                    input.value = '';
+                },
+
+                // ---- 节目单 ----
+                updateProgramStatus() {
+                    const now = new Date();
+                    const hours = now.getHours();
+                    const minutes = now.getMinutes();
+                    const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                    this.els.currentTimeDisplay.textContent = timeStr;
+                    const isLive = (hours === 9 && minutes >= 30) || (hours === 10) || (hours === 11 && minutes === 0);
+                    const statusEl = this.els.programStatus;
+                    if (isLive) {
+                        statusEl.textContent = '● 直播中';
+                        statusEl.className = 'prog-status live';
+                    } else {
+                        statusEl.textContent = '⏺ 重播';
+                        statusEl.className = 'prog-status record';
+                    }
+                },
+
+                // ---- 音量 UI ----
+                updateVolumeUI() {
+                    const vol = this.state.muted ? 0 : this.state.volume;
+                    this.els.volumeSlider.value = vol;
+                    this.els.volumeDisplay.textContent = vol + '%';
+                    this.els.volumeIcon.innerHTML = vol === 0 ? '<i class="fas fa-volume-mute"></i>' :
+                        (vol < 30 ? '<i class="fas fa-volume-off"></i>' : '<i class="fas fa-volume-up"></i>');
+                },
+            };
+
+            // ================================================================
+            //  启动
+            // ================================================================
+            document.addEventListener('DOMContentLoaded', () => {
+                App.init();
+            });
+
+            window.__liveApp = App;
+        })();
+    </script>
+</body>
+</html>
