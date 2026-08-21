@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>三河网留言栏</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        /* ===== 全局重置与变量 ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #a80000; --primary-dark: #6a0000; --accent-start: #d42a2a; --accent-end: #a80000;
+            --accent: #c62828; --bg: #f0ece6; --card-bg: #ffffff; --text: #1a1a1a;
+            --text-light: #3a3a3a; --text-muted: #6a6a6a; --border-light: #d4c8c0;
+            --border-dark: #b8a8a0; --font-serif: 'Merriweather','Georgia',serif;
+            --font-sans: 'Roboto','Arial',sans-serif; --shadow: 0 6px 24px rgba(0,0,0,0.10);
+            --shadow-hover: 0 12px 40px rgba(0,0,0,0.16); --glow: 0 0 20px rgba(200,50,50,0.08);
+        }
+        html,body { height:100%; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--text); font-family:var(--font-sans); line-height:1.7; min-height:100vh; position:relative; overflow-x:hidden; }
+        .app-wrapper { position:relative; z-index:1; display:flex; flex-direction:column; min-height:100vh; background:rgba(255,255,255,0.88); backdrop-filter:blur(2px); }
+        .container { max-width:1240px; margin:0 auto; padding:0 24px; }
+        a { text-decoration:none; color:inherit; cursor:pointer; }
+
+        /* ===== 顶部白条 ===== */
+        .top-white-bar { background:#ffffff; padding:2px 0; border-bottom:2px solid #e0c8c0; box-shadow:0 2px 12px rgba(160,0,0,0.06); flex-shrink:0; }
+        .top-white-bar .container { display:flex; justify-content:center; align-items:center; gap:12px; }
+        .top-white-bar .arg-tag { font-size:10px; font-weight:700; color:#b8860b; letter-spacing:1.5px; text-transform:uppercase; text-shadow:0 0 10px rgba(184,134,11,0.2); }
+        .top-white-bar .datetime-white { font-size:11px; font-weight:400; color:#3a2a2a; background:#f8f4f4; padding:1px 12px; border-radius:16px; border:1px solid #ece4e4; }
+
+        /* ===== 顶部栏 ===== */
+        .top-bar {
+            background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 30%, transparent 60%, rgba(0,0,0,0.12) 100%),
+                        linear-gradient(135deg, #d42a2a 0%, #a80000 45%, #8a0000 75%, #6a0000 100%);
+            color:#fff; padding:10px 0 8px 0; position:relative; z-index:10;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.20), 0 2px 0 rgba(255,255,255,0.12) inset, 0 -4px 0 rgba(0,0,0,0.15) inset, 0 0 60px rgba(200,50,50,0.10);
+            border-top:1px solid rgba(255,255,255,0.10); border-bottom:3px solid #4a0000; flex-shrink:0;
+        }
+        .top-bar::before { content:''; position:absolute; top:0; left:0; right:0; height:40%; background:linear-gradient(180deg,rgba(255,255,255,0.10) 0%,transparent 100%); pointer-events:none; border-radius:0 0 50% 50% / 0 0 100% 100%; opacity:0.5; }
+        .top-bar::after { content:''; position:absolute; bottom:-6px; left:5%; right:5%; height:6px; background:linear-gradient(90deg,transparent,rgba(255,200,200,0.3),rgba(255,200,200,0.6),rgba(255,200,200,0.3),transparent); border-radius:50%; filter:blur(3px); opacity:0.6; }
+        .top-bar .container { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; position:relative; z-index:2; }
+
+        .site-logo-wrapper { display:flex; align-items:center; gap:12px; }
+        .site-logo-text { display:flex; flex-direction:column; align-items:flex-start; }
+        .site-logo { font-family:var(--font-serif); font-size:34px; font-weight:900; letter-spacing:4px; text-shadow:0 2px 12px rgba(0,0,0,0.3),0 0 40px rgba(255,255,255,0.05); background:linear-gradient(180deg,#ffffff 20%,#ffd0d0 90%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.2)); cursor:pointer; user-select:none; line-height:1.1; }
+        .site-logo span { color:#ffd0d0; -webkit-text-fill-color:#ffd0d0; }
+        .site-logo-en { font-size:12px; font-weight:400; color:rgba(255,255,255,0.55); letter-spacing:1.5px; margin-top:2px; font-family:var(--font-sans); text-shadow:0 1px 4px rgba(0,0,0,0.2); }
+        .site-icon { height:40px; width:auto; border-radius:4px; box-shadow:0 0 12px rgba(255,255,255,0.1); flex-shrink:0; margin-top:-15px; }
+
+        .search-box { display:flex; align-items:center; background:rgba(255,255,255,0.12); border-radius:30px; padding:2px 16px 2px 20px; border:1px solid rgba(255,255,255,0.10); box-shadow:inset 0 2px 6px rgba(0,0,0,0.12),0 1px 0 rgba(255,255,255,0.05); backdrop-filter:blur(4px); transition:all 0.3s; }
+        .search-box:hover,.search-box:focus-within { border-color:rgba(255,255,255,0.25); background:rgba(255,255,255,0.18); box-shadow:inset 0 2px 6px rgba(0,0,0,0.12),0 0 30px rgba(255,200,200,0.10); }
+        .search-box input { background:transparent; border:none; padding:10px 8px; color:#fff; outline:none; font-size:15px; font-family:var(--font-sans); width:180px; }
+        .search-box input::placeholder { color:#e0c8c0; }
+        .search-box button { background:none; border:none; color:#e0c8c0; cursor:pointer; font-size:18px; padding:6px 4px; transition:color 0.2s,transform 0.2s; }
+        .search-box button:hover { color:#fff; transform:scale(1.08); }
+
+        /* ===== 导航栏（简化） ===== */
+        .main-nav { background:rgba(252,248,248,0.85); backdrop-filter:blur(8px); border-bottom:2px solid var(--border-dark); box-shadow:0 4px 20px rgba(0,0,0,0.06),inset 0 2px 0 #ffffff,inset 0 -2px 0 rgba(0,0,0,0.02); position:sticky; top:0; z-index:100; flex-shrink:0; }
+        .main-nav .container { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; }
+        .nav-links { display:flex; list-style:none; flex-wrap:wrap; }
+        .nav-links li a { display:block; padding:16px 22px; font-family:var(--font-sans); font-weight:700; font-size:16px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text); border-bottom:3px solid transparent; transition:all 0.2s; position:relative; cursor:default; }
+        .nav-links li a.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+        /* ===== 主内容 ===== */
+        .content-area { flex:1; position:relative; padding:32px 0; }
+        .message-grid { display:grid; grid-template-columns:2fr 1fr; gap:32px; }
+
+        /* 左侧历史留言 */
+        .main-articles { display:flex; flex-direction:column; gap:24px; }
+        .section-header { display:flex; justify-content:space-between; align-items:baseline; border-bottom:2px solid var(--border-dark); padding-bottom:10px; background:rgba(255,255,255,0.3); padding:6px 16px; border-radius:8px; box-shadow:inset 0 2px 4px rgba(255,255,255,0.6),inset 0 -2px 4px rgba(0,0,0,0.04); }
+        .section-header h2 { font-family:var(--font-serif); font-size:26px; font-weight:900; border-left:5px solid var(--accent); padding-left:14px; color:var(--primary); text-shadow:0 1px 0 rgba(255,255,255,0.5); }
+
+        .article-list { display:flex; flex-direction:column; gap:16px; }
+        .article-item { background:var(--card-bg); border-radius:10px; overflow:hidden; box-shadow:var(--shadow),var(--glow); padding:16px 20px; border:1px solid var(--border-light); transition:all 0.25s; cursor:pointer; position:relative; display:flex; align-items:center; gap:14px; }
+        .article-item:hover { transform:translateY(-3px); box-shadow:var(--shadow-hover),var(--glow); border-color:var(--accent); }
+        .article-item.locked { opacity:0.7; cursor:not-allowed; }
+        .article-item.locked:hover { transform:none; box-shadow:var(--shadow),var(--glow); border-color:var(--border-light); }
+        .article-item .art-number { font-family:var(--font-serif); font-size:24px; font-weight:900; color:var(--primary); min-width:40px; }
+        .article-item .art-status { margin-left:auto; }
+        .article-item .art-status i { font-size:18px; }
+        .article-item .art-status .lock-icon { color:var(--text-muted); }
+        .article-item .art-status .unlock-icon { color:#4caf50; }
+
+        /* 文章详情 */
+        .article-detail { margin-top:20px; background:var(--card-bg); border-radius:10px; padding:24px; border:1px solid var(--border-light); box-shadow:var(--shadow),var(--glow); display:none; }
+        .article-detail.active { display:block; }
+        .article-detail .detail-title { display:none; }
+        .article-detail .detail-content { font-size:16px; line-height:1.9; color:var(--text-light); white-space:pre-wrap; word-break:break-word; }
+        .article-detail .detail-content .red { color: #ff0000; }
+        .article-detail .detail-content .white { color: #ffffff; }
+        .article-detail .detail-content .empty-line { display:block; height:1.5em; }
+
+        /* 右侧他人留言（占位） */
+        .sidebar { display:flex; flex-direction:column; gap:28px; }
+        .sidebar-widget { background:var(--card-bg); border-radius:10px; padding:22px; border:1px solid var(--border-light); box-shadow:var(--shadow),var(--glow); }
+        .sidebar-widget h4 { font-family:var(--font-serif); font-size:20px; font-weight:900; margin-bottom:14px; border-bottom:2px solid rgba(200,160,160,0.25); padding-bottom:8px; display:flex; align-items:center; gap:10px; color:var(--primary); }
+        .comment-placeholder { color:var(--text-muted); text-align:center; padding:20px 0; }
+        .comment-placeholder i { font-size:32px; display:block; margin-bottom:10px; opacity:0.3; }
+
+        /* ===== 页脚（仅版权） ===== */
+        .footer { background:linear-gradient(180deg,rgba(255,255,255,0.06) 0%,transparent 50%,rgba(0,0,0,0.12) 100%),linear-gradient(135deg,#6a0000 0%,#a80000 60%,#d42a2a 100%); color:#f0d8d0; padding:32px 0; border-top:3px solid #ff8a80; border-bottom:2px solid #4a0000; box-shadow:0 -4px 20px rgba(0,0,0,0.10),inset 0 2px 0 rgba(255,255,255,0.03); position:relative; flex-shrink:0; margin-top:0; }
+        .footer::before { content:''; position:absolute; top:-3px; left:0; right:0; height:3px; background:linear-gradient(90deg,transparent,#ff8a80,#f0d8d0,#ff8a80,transparent); opacity:0.5; }
+        .footer .container { display:flex; justify-content:center; align-items:center; }
+        .footer .copyright { font-size:15px; font-weight:300; }
+
+        /* ===== 弹窗 ===== */
+        .overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:999; display:flex; align-items:center; justify-content:center; transition:opacity 0.3s; }
+        .overlay.hidden { opacity:0; pointer-events:none; }
+        .overlay .modal { background:#fff; border-radius:12px; padding:32px 36px; max-width:480px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.3); text-align:center; }
+        .overlay .modal h3 { font-family:var(--font-serif); font-size:22px; font-weight:900; color:var(--primary); margin-bottom:12px; }
+        .overlay .modal p { color:var(--text-light); font-size:16px; margin-bottom:16px; line-height:1.6; }
+        .overlay .modal input[type="text"] { width:100%; padding:10px 14px; border:1px solid var(--border-light); border-radius:8px; font-size:16px; outline:none; margin-bottom:16px; transition:border-color 0.2s; }
+        .overlay .modal input[type="text"]:focus { border-color:var(--accent); }
+        .overlay .modal .btn-group { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+        .overlay .modal .btn { padding:8px 32px; border:none; border-radius:30px; font-size:16px; font-weight:700; cursor:pointer; transition:transform 0.15s, box-shadow 0.2s; font-family:var(--font-sans); }
+        .overlay .modal .btn-primary { background:linear-gradient(135deg, var(--primary-light), var(--primary)); color:#fff; box-shadow:0 2px 8px rgba(200,50,50,0.2); }
+        .overlay .modal .btn-primary:hover { transform:scale(1.04); box-shadow:0 4px 16px rgba(200,50,50,0.3); }
+        .overlay .modal .btn-secondary { background:#e0d8d0; color:#000; }
+        .overlay .modal .btn-secondary:hover { background:#d0c8c0; }
+        .overlay .modal .error-msg { color:#c62828; font-size:14px; margin-top:8px; min-height:24px; }
+
+        /* ===== 响应式 ===== */
+        @media (max-width:1024px){ .message-grid { grid-template-columns:1fr; } }
+        @media (max-width:768px){ .top-bar .container { flex-direction:column; align-items:stretch; } .search-box { width:100%; } .search-box input { width:100%; } .site-logo { font-size:28px; } .site-logo-en { font-size:10px; } .site-icon { height:32px; margin-top:-2px; } .footer .container { flex-direction:column; align-items:center; text-align:center; } }
+        @media (max-width:480px){ .site-logo { font-size:24px; } .site-logo-en { font-size:9px; } .site-icon { height:28px; margin-top:-1px; } .section-header h2 { font-size:22px; } .article-item .art-number { font-size:20px; } .overlay .modal { padding:24px 20px; } .overlay .modal h3 { font-size:20px; } .overlay .modal .btn { padding:6px 24px; font-size:14px; } }
+    </style>
+</head>
+<body>
+
+    <!-- ===== 主应用容器 ===== -->
+    <div class="app-wrapper" id="appWrapper" style="pointer-events:none; opacity:0.5; user-select:none;">
+
+        <!-- ===== 顶部白条 ===== -->
+        <div class="top-white-bar">
+            <div class="container">
+                <span class="arg-tag left">ARG网页</span>
+                <span class="datetime-white" id="datetimeWhite">加载中...</span>
+                <span class="arg-tag right">ARG网页</span>
+            </div>
+        </div>
+
+        <!-- ===== 顶部栏 ===== -->
+        <header class="top-bar">
+            <div class="container">
+                <div class="site-logo-wrapper">
+                    <div class="site-logo-text">
+                        <div class="site-logo">三河网<span>留言栏</span></div>
+                        <div class="site-logo-en">Sanhe Provincial TV</div>
+                    </div>
+                    <img src="images/1000072813_transparent.jpg" alt="图标" class="site-icon" onerror="this.style.display='none'" />
+                </div>
+                <div class="search-box">
+                    <input type="text" placeholder="搜索留言..." id="searchInput" />
+                    <button id="searchBtn"><i class="fas fa-search"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- ===== 导航栏 ===== -->
+        <nav class="main-nav">
+            <div class="container">
+                <ul class="nav-links">
+                    <li><a href="#" class="active">留言板</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- ===== 内容区域 ===== -->
+        <div class="content-area">
+            <div class="container">
+                <div class="message-grid">
+                    <!-- 左侧我的历史留言 -->
+                    <div class="main-articles">
+                        <div class="section-header">
+                            <h2>我的历史留言</h2>
+                        </div>
+                        <div class="article-list" id="articleList">
+                            <!-- 由 JS 动态生成 -->
+                        </div>
+                        <!-- 文章详情 -->
+                        <div class="article-detail" id="articleDetail">
+                            <div class="detail-title" id="detailTitle"></div>
+                            <div class="detail-content" id="detailContent"></div>
+                        </div>
+                    </div>
+                    <!-- 右侧他人留言（占位） -->
+                    <aside class="sidebar">
+                        <div class="sidebar-widget">
+                            <h4><i class="fas fa-comment-dots"></i> 他人留言</h4>
+                            <div class="comment-placeholder">
+                                <i class="fas fa-inbox"></i>
+                                暂无留言，敬请期待。
+                            </div>
+                        </div>
+                        <div class="sidebar-widget" style="background:linear-gradient(180deg,rgba(255,255,255,0.06) 0%,transparent 50%,rgba(0,0,0,0.12) 100%),linear-gradient(135deg,#6a0000 0%,#a80000 60%,#d42a2a 100%); color:#fff; border-color:rgba(255,200,200,0.12); box-shadow:0 6px 20px rgba(0,0,0,0.15),inset 0 2px 0 rgba(255,255,255,0.05),inset 0 -3px 0 rgba(0,0,0,0.1); border-top:1px solid rgba(255,255,255,0.05); border-bottom:2px solid #4a0000;">
+                            <h4 style="color:#f0d8d0; border-bottom-color:rgba(255,200,200,0.12);"><i class="fas fa-hard-hat"></i> 特别关注</h4>
+                            <p style="font-size:15px; color:#f0d8d0; margin-top:6px; line-height:1.8;">
+                                留言板功能正在建设中，后续将支持用户互动和文章解锁机制。
+                            </p>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 页脚 ===== -->
+        <footer class="footer">
+            <div class="container">
+                <span class="copyright">&copy; 2026 三河网 · 留言板</span>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- ===== 弹窗容器 ===== -->
+    <div class="overlay" id="authOverlay">
+        <div class="modal" id="authModal">
+            <h3 id="modalTitle">安全验证</h3>
+            <p id="modalDesc">请输入您的 QQ 号以继续</p>
+            <input type="text" id="modalInput" placeholder="请输入QQ号" />
+            <div class="btn-group">
+                <button class="btn btn-secondary" id="modalCancel">取消</button>
+                <button class="btn btn-secondary" id="modalConfirm">确认</button>
+            </div>
+            <div class="error-msg" id="modalError"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ================================================================
+            //  数据定义（第五章已修改）
+            // ================================================================
+            const articles = [{
+                id: 1,
+                title: '1',
+                content: `我五岁住奶奶家。奶奶捏我手腕红绳，说：
+        “你八字丁亥、癸丑、壬子、庚子，水漫金山，独缺木。晓字属火，无木不生。要多亲近草木。”
+
+        邻居女孩，家里叫她二兰儿，常带我去墙根寻蜗牛，捣凤仙花染指甲。奶奶说，兰字属木，正好补我。
+
+        后来我们寻来空铁皮糖盒。奶奶放入三物：玻璃珠、朱砂纸、黄土。
+        “铁盒金，玻璃水，纸木，朱砂火，黄土土。五行齐，埋老槐下，等你八字周转。”
+
+        我们埋了。老槐叶响。
+
+        问： jwqfsjw，退五。她名为何？`,
+                question: '我是什么星座的？',
+                answer: '狮子座',
+                unlocked: false,
+                locked: true
+            }, {
+                id: 2,
+                title: '2',
+                content: `七岁，她与我同班同桌。冬天送我蓝铁文具盒，盒盖两只鹤，内藏一颗纸星。
+
+        奶奶说：“蓝属水，你水多，但水冷；纸星属火，火能暖水。这丫头会挑。”
+
+        问： 二蓝兰星，栅二。合成何四字？`,
+                question: 'jwqfsjw，退五。她名为何？',
+                answer: '二兰儿',
+                unlocked: false,
+                locked: true
+            }, {
+                id: 3,
+                title: '3',
+                content: `不久她随父迁南。临别说：“南方属火，我去替你寻火。”
+
+        当夜我梦见两个兰儿站在老槐树下，一个笑，一个哭。醒来把纸星锁进奶奶抽屉。
+
+        问： 二蓝南兰星天，栅二。六字为何？`,
+                question: '二蓝兰星，栅二。合成何四字？',
+                answer: '二兰蓝星',
+                unlocked: false,
+                locked: true
+            }, {
+                id: 4,
+                title: '4',
+                content: `茬適里瀭叺濡婹啭換哋④慁遖兲
+
+        拾②嵗，荍菿眀信爿，寄洎遖兲巿。揹媔冩：
+        “艿艿傢哋荖槐樹還恏嬤？莪瑺夢見哪個鉄盉ふ。”
+
+        艿艿栺“遖兲”説：“遖屬焱，兲屬唫。焱尅唫，唫泩渁。沵渁掵嘚焱煖，嘚唫荍。適峸洺，囸湜沵哋伍垳淍啭。”
+
+        莪冋信：槐茬，埖姩姩閞。舂唻挖盉，看箥璃咮妸煷。
+
+        問： ②暒蘭遖藍兲，栅彡。蔠妏潙哬？彅軆牸、瀿軆牸戓焱暒妏。`,
+                question: '二蓝南兰星天，栅二。六字为何？',
+                answer: '二兰蓝星南天',
+                unlocked: false,
+                locked: true
+            }, {
+                id: 5,
+                title: '5',
+                content: `我也不知道说点什么
+
+        总之，王晓，走下去，试一试
+
+        小时后那样的打击对你来说小菜一碟，这算什么
+
+        是吧？
+
+        他们。。。那样对我，我现在不是还活着吗，王晓，你连小时候都比不过
+
+        我不是废物
+
+        我的父母真的爱我吗
+
+        不要紧，我在
+
+        你记得吗，小时候你总是一个人坐在门槛上等天黑。
+        等路灯亮起来的时候，你说那不是光，是星星掉进了水里。
+        后来你学会了把自己藏进铁盒子里，就像当年埋下的那个。
+        可铁盒子终究会生锈，而你，已经长出新的根了。
+        那些没有说出口的话，其实都有人听见了。
+        你只是忘了，你一直都不是一个人。
+
+        他们应该知道点什么，那么，让我们询问他们吧:
+
+        儍僷卮蒞議뀨ꁔꂽڦ뀕ᵮꅐ쫹콩얀`,
+                question: null,
+                answer: null,
+                unlocked: false,
+                locked: true,
+                hidden: true,
+                htmlContent: true
+            }];
+
+            // 状态
+            let unlockedArticles = [];
+            let currentArticleId = null;
+
+            // DOM 引用
+            const appWrapper = document.getElementById('appWrapper');
+            const authOverlay = document.getElementById('authOverlay');
+            const authModal = document.getElementById('authModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalDesc = document.getElementById('modalDesc');
+            const modalInput = document.getElementById('modalInput');
+            const modalError = document.getElementById('modalError');
+            const modalConfirm = document.getElementById('modalConfirm');
+            const modalCancel = document.getElementById('modalCancel');
+            const articleList = document.getElementById('articleList');
+            const detailTitle = document.getElementById('detailTitle');
+            const detailContent = document.getElementById('detailContent');
+            const articleDetail = document.getElementById('articleDetail');
+
+            // ================================================================
+            //  工具函数
+            // ================================================================
+            function showModal(title, desc, placeholder, confirmText, cancelText, callback) {
+                modalTitle.textContent = title;
+                modalDesc.textContent = desc;
+                modalInput.placeholder = placeholder || '';
+                modalInput.value = '';
+                modalError.textContent = '';
+                modalConfirm.textContent = confirmText || '确认';
+                modalCancel.textContent = cancelText || '取消';
+                authOverlay.classList.remove('hidden');
+                modalConfirm.onclick = function() {
+                    const val = modalInput.value.trim();
+                    if (callback) callback(val);
+                };
+                modalCancel.onclick = function() {
+                    authOverlay.classList.add('hidden');
+                };
+                modalInput.onkeydown = function(e) {
+                    if (e.key === 'Enter') modalConfirm.click();
+                };
+                setTimeout(() => modalInput.focus(), 100);
+            }
+
+            function hideModal() {
+                authOverlay.classList.add('hidden');
+            }
+
+            function showError(msg) {
+                modalError.textContent = msg;
+            }
+
+            // ================================================================
+            //  渲染文章列表
+            // ================================================================
+            function renderArticles() {
+                let html = '';
+                articles.forEach((art) => {
+                    if (art.hidden && !art.unlocked) return;
+                    const isUnlocked = art.unlocked;
+                    const lockIcon = isUnlocked ?
+                        '<i class="fas fa-unlock unlock-icon"></i>' :
+                        '<i class="fas fa-lock lock-icon"></i>';
+                    const lockedClass = isUnlocked ? '' : 'locked';
+                    html += `
+                        <div class="article-item ${lockedClass}" data-id="${art.id}">
+                            <span class="art-number">${art.title}</span>
+                            <span class="art-status">${lockIcon}</span>
+                        </div>
+                    `;
+                });
+                articleList.innerHTML = html;
+
+                document.querySelectorAll('.article-item').forEach(el => {
+                    el.addEventListener('click', function() {
+                        const id = parseInt(this.dataset.id);
+                        handleArticleClick(id);
+                    });
+                });
+            }
+
+            // ================================================================
+            //  处理点击文章
+            // ================================================================
+            function handleArticleClick(id) {
+                const art = articles.find(a => a.id === id);
+                if (!art) return;
+                if (art.hidden && !art.unlocked) return;
+
+                if (art.unlocked) {
+                    showArticleDetail(art);
+                    return;
+                }
+
+                if (id === 1) {
+                    askQuestion(art);
+                    return;
+                }
+
+                const prevArt = articles.find(a => a.id === id - 1);
+                if (!prevArt || !prevArt.unlocked) {
+                    alert('请先解锁前一篇文章！');
+                    return;
+                }
+
+                askQuestion(art);
+            }
+
+            // ================================================================
+            //  弹出问题框
+            // ================================================================
+            function askQuestion(art) {
+                if (!art.question) {
+                    art.unlocked = true;
+                    renderArticles();
+                    showArticleDetail(art);
+                    return;
+                }
+                showModal(
+                    '解锁文章',
+                    art.question,
+                    '请输入答案',
+                    '确认',
+                    '取消',
+                    function(answer) {
+                        if (answer === art.answer) {
+                            hideModal();
+                            art.unlocked = true;
+                            if (art.id === 4) {
+                                const fifth = articles.find(a => a.id === 5);
+                                if (fifth) {
+                                    fifth.hidden = false;
+                                    fifth.unlocked = true;
+                                    renderArticles();
+                                    showArticleDetail(fifth);
+                                    return;
+                                }
+                            }
+                            renderArticles();
+                            showArticleDetail(art);
+                        } else {
+                            showError('答案错误，请重试');
+                        }
+                    }
+                );
+            }
+
+            // ================================================================
+            //  显示文章详情（第五章颜色逻辑已修正）
+            // ================================================================
+            function showArticleDetail(art) {
+                articleDetail.classList.add('active');
+                detailTitle.textContent = '';
+                if (art.id === 5) {
+                    const lines = art.content.split('\n');
+                    let finalHtml = '';
+                    let redMode = false;
+                    let whiteMode = false;
+
+                    for (let line of lines) {
+                        let cls = '';
+                        // 检测关键词切换模式
+                        if (line.includes('是吧？')) {
+                            redMode = true;
+                            whiteMode = false;
+                            cls = 'red';
+                        } else if (line.includes('不要紧，我在')) {
+                            redMode = false;
+                            whiteMode = true;
+                            cls = 'white';
+                        } else if (line.includes('他们应该知道点什么')) {
+                            // 切换到黑色（默认）
+                            redMode = false;
+                            whiteMode = false;
+                            cls = ''; // 默认黑色
+                        } else if (line.includes('儍僷')) {
+                            redMode = false;
+                            whiteMode = true;
+                            cls = 'white';
+                        } else if (redMode) {
+                            cls = 'red';
+                        } else if (whiteMode) {
+                            cls = 'white';
+                        }
+
+                        if (line === '') {
+                            // 空行，添加空行占位，并应用当前颜色类
+                            finalHtml += `<div class="empty-line ${cls}"></div>`;
+                        } else {
+                            finalHtml += `<div class="${cls}">${line}</div>`;
+                        }
+                    }
+                    detailContent.innerHTML = finalHtml;
+                    detailContent.style.whiteSpace = 'normal';
+                } else {
+                    detailContent.textContent = art.content;
+                }
+                articleDetail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            // ================================================================
+            //  QQ 验证流程
+            // ================================================================
+            function startQQVerification() {
+                appWrapper.style.pointerEvents = 'none';
+                appWrapper.style.opacity = '0.5';
+                appWrapper.style.userSelect = 'none';
+
+                showModal(
+                    '安全验证',
+                    '检测到您的账号存在安全风险，请输入您的 QQ 号以继续。',
+                    '请输入QQ号',
+                    '确认',
+                    '取消',
+                    function(qq) {
+                        if (qq === '3776139950') {
+                            hideModal();
+                            appWrapper.style.pointerEvents = 'auto';
+                            appWrapper.style.opacity = '1';
+                            appWrapper.style.userSelect = 'auto';
+                            renderArticles();
+                        } else {
+                            showError('QQ号错误，请重新输入');
+                        }
+                    }
+                );
+            }
+
+            // ================================================================
+            //  时钟
+            // ================================================================
+            function startClock() {
+                const el = document.getElementById('datetimeWhite');
+                const update = () => {
+                    const now = new Date();
+                    const opts = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+                    el.textContent = now.toLocaleDateString('zh-CN', opts) + ' (UTC+8)';
+                };
+                update();
+                setInterval(update, 60000);
+            }
+            startClock();
+
+            // ================================================================
+            //  搜索等交互（模拟）
+            // ================================================================
+            document.getElementById('searchBtn').addEventListener('click', function() {
+                alert('搜索功能暂未开放');
+            });
+            document.getElementById('searchInput').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') document.getElementById('searchBtn').click();
+            });
+
+            // ================================================================
+            //  启动
+            // ================================================================
+            startQQVerification();
+
+        })();
+    </script>
+</body>
+</html>
